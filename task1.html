@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lab 4 - Secure Form Processing</title>
+    <style>
+        .error { color: red; }
+        .success { color: green; }
+        .output { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Lab 4</h1>
+    <form id="mainForm" method="post">
+        <label for="encodedInput">Encoded Input:</label>
+        <input type="text" id="encodedInput" name="encodedInput" >
+        <p id="encodedInputError" class="error"></p><br>
+
+        <label for="username">Username (5–12 chars, alphanumeric or _):</label>
+        <input type="text" id="username" name="username" >
+        <p id="usernameError" class="error"></p><br>
+
+        <label for="email">Email Address:</label>
+        <input type="email" id="email" name="email" >
+        <p id="emailError" class="error"></p><br>
+        
+        <label for="quantity">Quantity (1-100):</label>
+        <input type="number" id="quantity" name="quantity" >
+        <p id="quantityError" class="error"></p><br>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="output" class="output" style="display: none;">
+        <h2>Processing Results</h2>
+        <p><strong>Original Input:</strong> <span id="originalInput"></span></p>
+        <p><strong>Decoded Input:</strong> <span id="decodedInput"></span></p>
+        <p><strong>Username Validation:</strong> <span id="usernameResult"></span></p>
+        <p><strong>Email Validation:</strong> <span id="emailResult"></span></p>
+        <p><strong>Quantity Validation:</strong> <span id="quantityResult"></span></p>
+    </div>
+
+    <script>
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function recursiveDecode(input) {
+            let decoded;
+            try {
+                decoded = decodeURIComponent(input);
+            } catch (e) {
+                return input;
+            }
+            return decoded === input ? input : recursiveDecode(decoded);
+        }
+
+        function validateForm(event) {
+            event.preventDefault();
+            let isValid = true;
+
+            const encodedInput = document.getElementById('encodedInput').value;
+            const decodedInput = recursiveDecode(encodedInput);
+
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const quantity = document.getElementById('quantity').value;
+
+            // Always show decoded input
+            document.getElementById('originalInput').innerHTML = escapeHtml(encodedInput);
+            document.getElementById('decodedInput').innerHTML = escapeHtml(decodedInput);
+
+            // Username validation: 5-12 chars, alphanum or _, no quotes, no angle brackets
+            const usernameRegex = /^[a-zA-Z0-9_]{5,12}$/;
+            if (!usernameRegex.test(username)) {
+                document.getElementById('usernameError').innerHTML = 
+                    'Invalid: Must be 5-12 characters (letters, numbers, or _)';
+                document.getElementById('usernameResult').innerHTML = 
+                    '<span class="error">Rejected by validation (invalid characters)</span>';
+                isValid = false;
+            } else {
+                document.getElementById('usernameError').innerHTML = '';
+                document.getElementById('usernameResult').innerHTML = 
+                    '<span class="success">Valid username: ' + escapeHtml(username) + '</span>';
+            }
+
+            // Email validation: basic format check + sanitize angle brackets
+            const emailRegex = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+            if (!emailRegex.test(email)) {
+                document.getElementById('emailError').innerHTML = 'Invalid email format';
+                document.getElementById('emailResult').innerHTML = 
+                    '<span class="error">Invalid email format</span>';
+                isValid = false;
+            } else {
+                document.getElementById('emailError').innerHTML = '';
+                document.getElementById('emailResult').innerHTML = 
+                    '<span class="success">Valid email: ' + escapeHtml(email) + '</span>';
+            }
+
+            // Quantity validation
+            if (isNaN(quantity) || quantity < 1 || quantity > 100) {
+                document.getElementById('quantityError').innerHTML = 
+                    'Invalid: Must be between 1 and 100';
+                document.getElementById('quantityResult').innerHTML = 
+                    '<span class="error">Quantity out of bounds. Must be between 1 and 100</span>';
+                isValid = false;
+            } else {
+                document.getElementById('quantityError').innerHTML = '';
+                document.getElementById('quantityResult').innerHTML = 
+                    '<span class="success">Valid quantity: ' + escapeHtml(quantity) + '</span>';
+            }
+
+            // Always display the results
+            document.getElementById('output').style.display = 'block';
+            return isValid;
+        }
+
+        document.getElementById('mainForm').addEventListener('submit', validateForm);
+    </script>
+</body>
+</html>
